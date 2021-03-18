@@ -32,19 +32,19 @@ def model_ft(data_dir, save_dir, architecture, lr, hidden_units, epochs, device)
                           ]))
 
     model.classifier = classifier
-    
+
     start_time = time.time()
     best_weights = copy.deepcopy(model.state_dict())
     best_accuracy = 0.0
-    
+
     model = model.to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.classifier.parameters(), lr=0.001, momentum=0.9 )
     exp_lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=8, gamma=0.1)
-    
+
     model_ft = train_model(model, criterion, optimizer, exp_lr_scheduler, epochs, data_dir)
     return model_ft
-    
+
 def train_model(model, criterion, optimizer, scheduler, epochs, data_dir):
     dataset_sizes, dataloaders = load_train_val_sets(data_dir)
     print("dataloaders", type(dataloaders))
@@ -52,11 +52,11 @@ def train_model(model, criterion, optimizer, scheduler, epochs, data_dir):
     start_time = time.time()
     best_weights = copy.deepcopy(model.state_dict())
     best_accuracy = 0.0
-    
+
     for epoch in range(epochs):
         print(f"Epoch{epoch}/{epochs-1}")
         print("++++++++")
-        # I there are two phases: train and validation. 
+        # I there are two phases: train and validation.
         # If phase is train, enter train mode; if phase is validation, enter evaluation mode.
         for phase in ['train', 'val']:
             if phase == 'train':
@@ -68,35 +68,34 @@ def train_model(model, criterion, optimizer, scheduler, epochs, data_dir):
             for inputs, labels in dataloaders[phase]:
                 inputs = inputs.to(device)
                 labels = labels.to(device)
-                
-                # zero gradients, prevent accumulation
+
                 optimizer.zero_grad()
-                # forward process, and enable gradient + backpropgate + update params iff phase = train  
+
                 with torch.set_grad_enabled(phase == 'train'):
-                    outputs = model(inputs) # working with logits
-                    _, preds = torch.max(outputs, 1) # store the index that holds max value(argmax)
+                    outputs = model(inputs)
+                    _, preds = torch.max(outputs, 1)
                     loss = criterion(outputs, labels)
-                    
+
                     if phase == 'train':
                         loss.backward()
                         optimizer.step()
-                        
+
                 running_loss += loss.item()
-                correct_preds += torch.sum(preds == labels.data) # sum all correct predictions 
+                correct_preds += torch.sum(preds == labels.data)
                 # update the lr
             if phase == 'train':
                 scheduler.step()
 
             epoch_loss = running_loss / dataset_sizes[phase]
-            epoch_acc = correct_preds.double() / dataset_sizes[phase] 
+            epoch_acc = correct_preds.double() / dataset_sizes[phase]
             print(f"{phase} loss: {epoch_loss} Accuracy: {epoch_acc}")
-            
+
             if phase == 'val' and epoch_acc > best_accuracy:
                 best_accuracy = epoch_acc
                 best_weights = copy.deepcopy(model.state_dict())
-                
+
         print()
-        
+
     elapsed_time = time.time() - start_time
 
     print('Training complete in {:.0f}m {:.0f}s'.format(
@@ -105,4 +104,7 @@ def train_model(model, criterion, optimizer, scheduler, epochs, data_dir):
 
     model.load_state_dict(best_weights)
     return model
-    
+
+def save_model(model, save_dir):
+    print("saving the model now")
+    torch.save(model.state_dict(), save_dir)
