@@ -119,9 +119,21 @@ def save_model(model, save_dir, class_to_idx, architecture):
 
 def load_model(path_checkpoint):
     print("Loading trained model...")
+    if torch.cuda.is_available():
+        map_location=lambda storage, loc: storage.cuda()
+    else:
+        map_location='cpu'
 
-    checkpoint = torch.load(path_checkpoint)
-    model = models.vgg13(pretrained=False)
+    checkpoint = torch.load(path_checkpoint, map_location=map_location)
+
+    chosen_arch = checkpoint['arch']
+    if chosen_arch == 'vgg13':
+        print("chosen arch is: ", chosen_arch)
+        model = models.vgg13(pretrained=False)
+    else:
+        print("chosen arch is resnet18")
+        model = models.resnet18(pretrained=False)
+
     for param in model.parameters():
         param.requires_grad = False
 
@@ -129,8 +141,6 @@ def load_model(path_checkpoint):
     model.load_state_dict(checkpoint['state_dict'])
     model.class_to_idx = (checkpoint['image_datasets'])
 
-    hidden_units = checkpoint['hidden_units']
-#     print(f"hidden_units is: {hidden_units}")
+#     hidden_units = checkpoint['hidden_units'] - redundant.
 #     print(model)
-    # predict function
     return model
