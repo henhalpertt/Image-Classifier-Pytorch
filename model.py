@@ -4,11 +4,9 @@ import torch
 from torch import nn
 from torch import optim
 from collections import OrderedDict
-from utils import load_train_val_sets
+from utils import load_train_val_sets, category_to_name
 import copy
 import time
-
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 def model_ft(data_dir, save_dir, architecture, lr, hidden_units, epochs, device):
     if architecture == 'vgg13':
@@ -39,16 +37,15 @@ def model_ft(data_dir, save_dir, architecture, lr, hidden_units, epochs, device)
 
     model = model.to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.classifier.parameters(), lr=0.001, momentum=0.9 )
+    optimizer = optim.SGD(model.classifier.parameters(), lr=lr, momentum=0.9 )
     exp_lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=8, gamma=0.1)
 
-    model_ft = train_model(model, criterion, optimizer, exp_lr_scheduler, epochs, data_dir)
+    model_ft = train_model(model, criterion, optimizer, architecture, exp_lr_scheduler, epochs, data_dir,save_dir, device)
     return model_ft
 
-def train_model(model, criterion, optimizer, scheduler, epochs, data_dir):
-    dataset_sizes, dataloaders = load_train_val_sets(data_dir)
-    print("dataloaders", type(dataloaders))
-    print("datasize", type(dataloaders))
+def train_model(model, criterion, optimizer, architecture, scheduler, epochs, data_dir, save_dir, device):
+    dataset_sizes, dataloaders, class_to_idx = load_train_val_sets(data_dir)
+
     start_time = time.time()
     best_weights = copy.deepcopy(model.state_dict())
     best_accuracy = 0.0
@@ -103,8 +100,37 @@ def train_model(model, criterion, optimizer, scheduler, epochs, data_dir):
     print('Best val Acc: {:4f}'.format(best_accuracy))
 
     model.load_state_dict(best_weights)
+    save_model(model, save_dir, class_to_idx,architecture)
     return model
 
-def save_model(model, save_dir):
+def save_model(model, save_dir, class_to_idx, architecture):
     print("saving the model now")
-    torch.save(model.state_dict(), save_dir)
+    model.class_to_idx = class_to_idx
+
+    checkpoint = {
+              'state_dict': model.state_dict(),
+              'image_datasets': model.class_to_idx,
+              'hidden_units': model.classifier[0].out_features,
+              'classifer': model.classifier,
+              'arch': architecture,
+              'model': model,
+             }
+    torch.save(checkpoint, save_dir)
+
+def load_model(path_checkpoint):
+    print("Loading trained model...")
+
+    checkpoint = torch.load(path_checkpoint)
+    model = models.vgg13(pretrained=False)
+    for param in model.parameters():
+        param.requires_grad = False
+
+    model.classifier = checkpoint['classifer']
+    model.load_state_dict(checkpoint['state_dict'])
+    model.class_to_idx = (checkpoint['image_datasets'])
+
+    hidden_units = checkpoint['hidden_units']
+#     print(f"hidden_units is: {hidden_units}")
+#     print(model)
+    # predict function
+    return model
