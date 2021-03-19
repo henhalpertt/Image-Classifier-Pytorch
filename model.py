@@ -3,31 +3,41 @@ from torchvision import models
 import torch
 from torch import nn
 from torch import optim
+import numpy as np
 from collections import OrderedDict
-from utils import load_train_val_sets, category_to_name
+from utils import load_train_val_sets, category_to_name, process_image
 import copy
 import time
 
 def model_ft(data_dir, save_dir, architecture, lr, hidden_units, epochs, device):
     if architecture == 'vgg13':
         model = models.vgg13(pretrained=True)
-    elif architecture == 'resnet18':
-        model = models.resnet18(pretrained=True)
-    else:
-        print("only vgg13 or resNet18 are allowed")
-        return
+        for param in model.parameters():
+            param.requires_grad = False
 
-    for param in model.parameters():
-        param.requires_grad = False
-
-    classifier = nn.Sequential(OrderedDict([
-                          ('fc1', nn.Linear(25088, hidden_units)),
+        classifier = nn.Sequential(OrderedDict([
+                              ('fc1', nn.Linear(model.classifier[0].in_features, hidden_units)),
+                              ('relu', nn.ReLU()),
+                              ('fc2', nn.Linear(hidden_units, int(hidden_units/2))),
+                              ('relu', nn.ReLU()),
+                              ('fc3', nn.Linear(int(hidden_units/2), 102)),
+                              ('output', nn.LogSoftmax(dim=1))
+                              ]))
+    elif architecture == 'resnet50':
+        model = models.resnet50(pretrained=True)
+        for param in model.parameters():
+            param.requires_grad = False
+        classifier = nn.Sequential(OrderedDict([
+                          ('fc1', nn.Linear(model.fc.in_features, hidden_units)),
                           ('relu', nn.ReLU()),
-                          ('fc2', nn.Linear(hidden_units, 512)),
+                          ('fc2', nn.Linear(hidden_units, int(hidden_units/2))),
                           ('relu', nn.ReLU()),
-                          ('fc3', nn.Linear(512, 102)),
+                          ('fc3', nn.Linear(int(hidden_units/2), 102)),
                           ('output', nn.LogSoftmax(dim=1))
                           ]))
+    else:
+        print("only vgg13 or resNet50 are allowed")
+        return
 
     model.classifier = classifier
 
@@ -37,7 +47,7 @@ def model_ft(data_dir, save_dir, architecture, lr, hidden_units, epochs, device)
 
     model = model.to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.classifier.parameters(), lr=lr, momentum=0.9 )
+    optimizer = optim.SGD(model.classifier.parameters(), lr=lr, momentum=0.8 )
     exp_lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=8, gamma=0.1)
 
     model_ft = train_model(model, criterion, optimizer, architecture, exp_lr_scheduler, epochs, data_dir,save_dir, device)
@@ -128,10 +138,10 @@ def load_model(path_checkpoint):
 
     chosen_arch = checkpoint['arch']
     if chosen_arch == 'vgg13':
-        print("chosen arch is: ", chosen_arch)
+        print("pretrained model: ", chosen_arch)
         model = models.vgg13(pretrained=False)
     else:
-        print("chosen arch is resnet18")
+        print("pretrained model: resnet18")
         model = models.resnet18(pretrained=False)
 
     for param in model.parameters():
@@ -144,3 +154,26 @@ def load_model(path_checkpoint):
 #     hidden_units = checkpoint['hidden_units'] - redundant.
 #     print(model)
     return model
+
+def predict(image_path, model, topK, device):
+    model = model.to(device)
+    model.eval()
+
+    #using image_process:
+    image = process_image(image_path)
+    image_tensor = torch.from_numpy(np.array([image])).float()
+    image_tensor = image_tensor.to(device)
+
+    output = model(image_tensor)
+    ps = torch.exp(output)
+    top_p, top_class = ps.topk(topK, dim=1)
+
+    top_class = top_class.tolist()
+    top_p = top_p.tolist()
+
+    real_class = []
+
+    for class_value in top_class[0]:
+        real_class.append(([ k for k, v in model.class_to_idx.items() if v == class_value ])[0])
+
+    return top_p[0], real_class
