@@ -1,5 +1,8 @@
 from torchvision import transforms, datasets
 import torch
+import numpy as np
+from PIL import Image
+import matplotlib.pyplot as plt
 
 def load_train_val_sets(data_dir):
     train_dir = data_dir + '/train'
@@ -46,3 +49,35 @@ def category_to_name():
     with open('cat_to_name.json', 'r') as f:
         cat_to_name = json.load(f)
     return cat_to_name
+
+def process_image(image):
+    ''' Scales, crops, and normalizes a PIL image for a PyTorch model,
+        returns an Numpy array
+    '''
+    # I need the inner region inside the 256x256 rectangle. that inner region is 224x224.
+    # left side crop: 16pixels = upper
+    # right side crop: left side crop + 224 = 240 = down
+    (left, upper, right, lower) = (16, 16, 240, 240)
+    im = Image.open(image)
+    im = im.resize((256,256)).crop((left, upper, right, lower))
+    np_image = np.array(im) / 255 # scale down
+
+    mean = np.array([0.485, 0.456, 0.406])
+    sd = np.array([0.229, 0.224, 0.225])
+    np_image_scaled = (np_image - mean) / sd
+
+    return np_image_scaled.transpose(2,0,1)
+
+def imshow(image, ax=None, title=None):
+    """Imshow for Tensor."""
+    if ax is None:
+        fig, ax = plt.subplots()
+    image = image.numpy().transpose((1, 2, 0))
+    mean = np.array([0.485, 0.456, 0.406])
+    std = np.array([0.229, 0.224, 0.225])
+    image = std * image + mean
+    image = np.clip(image, 0, 1)
+
+    ax.imshow(image)
+
+    return ax
