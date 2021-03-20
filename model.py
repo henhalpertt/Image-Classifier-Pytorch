@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from torchvision import models
 import torch
+from torch.autograd import Variable
 from torch import nn
 from torch import optim
 import numpy as np
@@ -12,33 +13,25 @@ import time
 def model_ft(data_dir, save_dir, architecture, lr, hidden_units, epochs, device):
     if architecture == 'vgg13':
         model = models.vgg13(pretrained=True)
-        for param in model.parameters():
-            param.requires_grad = False
+        in_features = model.classifier[0].in_features
+    elif architecture == 'alexnet':
+        model = models.alexnet(pretrained=True)
+        in_features = model.classifier[1].in_features
+    else:
+        print("only vgg13 or alexnet are allowed")
+        return
 
-        classifier = nn.Sequential(OrderedDict([
-                              ('fc1', nn.Linear(model.classifier[0].in_features, hidden_units)),
+    for param in model.parameters():
+        param.requires_grad = False
+
+    classifier = nn.Sequential(OrderedDict([
+                              ('fc1', nn.Linear(in_features, hidden_units)),
                               ('relu', nn.ReLU()),
                               ('fc2', nn.Linear(hidden_units, int(hidden_units/2))),
                               ('relu', nn.ReLU()),
                               ('fc3', nn.Linear(int(hidden_units/2), 102)),
                               ('output', nn.LogSoftmax(dim=1))
                               ]))
-    elif architecture == 'resnet50':
-        model = models.resnet50(pretrained=True)
-        for param in model.parameters():
-            param.requires_grad = False
-        classifier = nn.Sequential(OrderedDict([
-                          ('fc1', nn.Linear(model.fc.in_features, hidden_units)),
-                          ('relu', nn.ReLU()),
-                          ('fc2', nn.Linear(hidden_units, int(hidden_units/2))),
-                          ('relu', nn.ReLU()),
-                          ('fc3', nn.Linear(int(hidden_units/2), 102)),
-                          ('output', nn.LogSoftmax(dim=1))
-                          ]))
-    else:
-        print("only vgg13 or resNet50 are allowed")
-        return
-
     model.classifier = classifier
 
     start_time = time.time()
@@ -49,7 +42,6 @@ def model_ft(data_dir, save_dir, architecture, lr, hidden_units, epochs, device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.classifier.parameters(), lr=lr, momentum=0.8 )
     exp_lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=8, gamma=0.1)
-
     model_ft = train_model(model, criterion, optimizer, architecture, exp_lr_scheduler, epochs, data_dir,save_dir, device)
     return model_ft
 
@@ -141,8 +133,8 @@ def load_model(path_checkpoint):
         print("pretrained model: ", chosen_arch)
         model = models.vgg13(pretrained=False)
     else:
-        print("pretrained model: resnet18")
-        model = models.resnet18(pretrained=False)
+        print("pretrained model: alexnet")
+        model = models.alexnet(pretrained=False)
 
     for param in model.parameters():
         param.requires_grad = False
