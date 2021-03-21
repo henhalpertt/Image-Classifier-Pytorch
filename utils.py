@@ -5,6 +5,17 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 def load_train_val_sets(data_dir):
+    '''
+    Loading training and validation data sets, applying transformations and saving as dataloader
+
+    Parameters:
+    data_dir(str) - path to data
+
+    returns:
+    dataset_sizes(dict): sizes of train and validation sets
+    dataloaders(dict): train and validation loaders
+    class_to_idx(dict): classes and index of labels
+    '''
     train_dir = data_dir + '/train'
     valid_dir = data_dir + '/valid'
     test_dir = data_dir + '/test'
@@ -15,7 +26,7 @@ def load_train_val_sets(data_dir):
                                    transforms.Normalize([0.485, 0.456, 0.406],
                                                         [0.229, 0.224, 0.225])])
 
-    # only resizing and cropping for validation and testing sets.
+
     val_transforms = transforms.Compose([transforms.Resize(255),
                                           transforms.CenterCrop(224),
                                           transforms.ToTensor(),
@@ -36,6 +47,11 @@ def load_train_val_sets(data_dir):
     return dataset_sizes, dataloaders, class_to_idx
 
 def load_test_data():
+    '''
+    Loading test data.
+
+    Will be implemented after I send this project :)
+    '''
     test_transforms = transforms.Compose([transforms.Resize(255),
                                   transforms.CenterCrop(224),
                                   transforms.ToTensor(),
@@ -46,13 +62,18 @@ def load_test_data():
     return test_data
 
 def category_to_name():
+    '''
+    Converts category number(keys) to class name(values)
+
+    returns a dictionary
+    '''
     with open('cat_to_name.json', 'r') as f:
         cat_to_name = json.load(f)
     return cat_to_name
 
 def process_image(image):
     ''' Scales, crops, and normalizes a PIL image for a PyTorch model,
-        returns an Numpy array
+        returns Ndarray
     '''
     # I need the inner region inside the 256x256 rectangle. that inner region is 224x224.
     # left side crop: 16pixels = upper

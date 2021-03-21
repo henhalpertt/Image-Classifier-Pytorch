@@ -11,6 +11,20 @@ import copy
 import time
 
 def model_ft(data_dir, save_dir, architecture, lr, hidden_units, epochs, device):
+    '''
+    Loading a pretrained model (vgg13 / alexnet), save trained model.
+
+    Parameters:
+    -data_dir(str): directory where data is
+    -save_dir(str): save location
+    -architecture(str): vgg13 or alexnet, otherwise returns with no model
+    -lr(float): learning rate
+    -hidden_units(int): number of hidden units in classifier
+    -epochs(int): number of training cycles
+    -device(str): cuda or cpu.
+    
+    returns a fully trained model.
+    '''
     if architecture == 'vgg13':
         model = models.vgg13(pretrained=True)
         in_features = model.classifier[0].in_features
@@ -46,6 +60,9 @@ def model_ft(data_dir, save_dir, architecture, lr, hidden_units, epochs, device)
     return model_ft
 
 def train_model(model, criterion, optimizer, architecture, scheduler, epochs, data_dir, save_dir, device):
+    '''
+    Training the model. returns a fully trained model
+    '''
     dataset_sizes, dataloaders, class_to_idx = load_train_val_sets(data_dir)
 
     start_time = time.time()
@@ -106,6 +123,9 @@ def train_model(model, criterion, optimizer, architecture, scheduler, epochs, da
     return model
 
 def save_model(model, save_dir, class_to_idx, architecture):
+    '''
+    Saving the trained model
+    '''
     print("saving the model now")
     model.class_to_idx = class_to_idx
 
@@ -120,6 +140,14 @@ def save_model(model, save_dir, class_to_idx, architecture):
     torch.save(checkpoint, save_dir)
 
 def load_model(path_checkpoint):
+    '''
+    Loading a trained model.
+
+    parameters:
+    -path_checkpoint: path to saved model
+
+    returns a pytorch model
+    '''
     print("Loading trained model...")
     if torch.cuda.is_available():
         map_location=lambda storage, loc: storage.cuda()
@@ -143,11 +171,20 @@ def load_model(path_checkpoint):
     model.load_state_dict(checkpoint['state_dict'])
     model.class_to_idx = (checkpoint['image_datasets'])
 
-#     hidden_units = checkpoint['hidden_units'] - redundant.
-#     print(model)
     return model
 
 def predict(image_path, model, topK, device):
+    '''
+    Make prediction on 1 image,
+
+    Parameters:
+    -image_path(str): path to image
+    -model(pytorch model): trained model
+    -topK(int): int
+    -device(str): cuda / cpu
+
+    returns top k probabilities and class(es)
+    '''
     model = model.to(device)
     model.eval()
 
