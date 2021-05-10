@@ -15,14 +15,14 @@ def model_ft(data_dir, save_dir, architecture, lr, hidden_units, epochs, device)
     Loading a pretrained model (vgg13 / alexnet), save trained model.
 
     Parameters:
-    -data_dir(str): directory where data is
+    -data_dir(str): directory where data is located
     -save_dir(str): save location
     -architecture(str): vgg13 or alexnet, otherwise returns with no model
     -lr(float): learning rate
     -hidden_units(int): number of hidden units in classifier
     -epochs(int): number of training cycles
     -device(str): cuda or cpu.
-    
+
     returns a fully trained model.
     '''
     if architecture == 'vgg13':
