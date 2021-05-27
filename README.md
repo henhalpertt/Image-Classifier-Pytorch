@@ -11,11 +11,10 @@ The project is broken down into multiple steps: <br><br>
 Load and preprocess the image dataset<br>
 Train the image classifier on your dataset<br>
 Use the trained classifier to predict image content<br>
-First up is importing the packages needed for thie project:<br>
 
 ## Directions: 
 
-Use a trained network to predict the class for an input image<br>
+Use a trained network to predict the class for an input image from the command line. <br>
 
 2 arguments must be entered: <path to the image> and <path to the trained model> <br>
 
