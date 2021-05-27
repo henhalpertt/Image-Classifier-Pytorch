@@ -25,5 +25,5 @@ example input: python predict.py flowers/test/100/image_07896.jpg  checkpoint_al
   
 ## Please follow the notebook before you run the code in command line <br>
 
-<img src = "prediction.png" width="500" height="600" >
+<img src = "prediction.png" width="600" height="400" >
 
