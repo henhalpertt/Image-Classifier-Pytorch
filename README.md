@@ -16,10 +16,10 @@ Use the trained classifier to predict image content<br>
 
 Use a trained network to predict the class for an input image from the command line. <br>
 
-2 arguments must be entered: <path to the image> and <path to the trained model> <br>
+2 arguments must be entered: path to the image and path to the trained model <br>
 
 Input format:
-python predict.py <path to image> <path to model> --category_names <dictionary> --top_k <int> <br>
+python predict.py image-path model-path --category_names --top_k <br>
 
 example input: python predict.py flowers/test/100/image_07896.jpg  checkpoint_alexnet.pth --top_k 3 --gpu <br>
   
